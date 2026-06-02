@@ -17,6 +17,8 @@ import {
   UserCheck,
   ImagePlus,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +32,7 @@ import {
   type EventDTO,
 } from "@/lib/events-client";
 
-type Tab = "event" | "events" | "invites" | "users" | "activity";
+type Tab = "events" | "invites" | "users" | "activity";
 
 async function j<T>(req: Response | Promise<Response>): Promise<T> {
   const res = await req;
@@ -39,9 +41,8 @@ async function j<T>(req: Response | Promise<Response>): Promise<T> {
 }
 
 export function AdminConsole() {
-  const [tab, setTab] = React.useState<Tab>("event");
+  const [tab, setTab] = React.useState<Tab>("events");
   const tabs: { id: Tab; label: string }[] = [
-    { id: "event", label: "Event details" },
     { id: "events", label: "Events" },
     { id: "invites", label: "Invites" },
     { id: "users", label: "Users" },
@@ -67,7 +68,6 @@ export function AdminConsole() {
         ))}
       </div>
 
-      {tab === "event" && <EventPanel />}
       {tab === "events" && <EventsPanel />}
       {tab === "invites" && <InvitesPanel />}
       {tab === "users" && <UsersPanel />}
@@ -82,9 +82,15 @@ interface EventSettings {
   occasion: string;
   note: string;
   birthdayDate: string;
+  published: boolean;
 }
 
-function EventPanel() {
+/**
+ * Editable "event details" (occasion, note, celebrant, date) that get
+ * published to the shared Updates page. Rendered on /updates for the publisher
+ * only — no longer a tab in the admin console.
+ */
+export function EventPanel() {
   const qc = useQueryClient();
   const [form, setForm] = React.useState<EventSettings | null>(null);
   const [saved, setSaved] = React.useState(false);
@@ -117,6 +123,25 @@ function EventPanel() {
     onError: (e: Error) => setError(e.message),
   });
 
+  // Publish / unpublish (hide) — toggles visibility for everyone without
+  // touching the saved text.
+  const setPublished = useMutation({
+    mutationFn: (published: boolean) =>
+      j<{ settings: EventSettings }>(
+        fetch("/api/admin/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ published }),
+        }),
+      ),
+    onSuccess: (res) => {
+      setError(null);
+      setForm((f) => (f ? { ...f, published: res.settings.published } : f));
+      qc.invalidateQueries({ queryKey: ["admin", "settings"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
   if (isLoading || !form)
     return <Card><CardContent className="p-0"><Spinner /></CardContent></Card>;
 
@@ -129,10 +154,22 @@ function EventPanel() {
   return (
     <Card>
       <CardContent className="p-6">
-        <h3 className="mb-1 text-base font-semibold">Event details</h3>
+        <div className="mb-1 flex items-center gap-2">
+          <h3 className="text-base font-semibold">Event details</h3>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium",
+              form.published
+                ? "bg-primary/10 text-primary"
+                : "bg-muted text-muted-foreground",
+            )}
+          >
+            {form.published ? "Live" : "Hidden"}
+          </span>
+        </div>
         <p className="mb-5 text-sm text-muted-foreground">
-          Edit the occasion and note shown on the private dashboard. Changes are
-          live immediately.
+          Edit the occasion and note shown on the Updates page. Changes are live
+          immediately. Hide it to remove it from everyone&apos;s view.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -180,10 +217,24 @@ function EventPanel() {
 
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
-        <div className="mt-5 flex items-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <Button onClick={() => save.mutate(form)} disabled={save.isPending}>
             {save.isPending ? <Loader2 className="animate-spin" /> : <Check />}
             Save changes
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPublished.mutate(!form.published)}
+            disabled={setPublished.isPending}
+          >
+            {setPublished.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : form.published ? (
+              <EyeOff />
+            ) : (
+              <Eye />
+            )}
+            {form.published ? "Hide from everyone" : "Publish"}
           </Button>
           {saved && (
             <span className="text-sm font-medium text-primary">Saved ✓</span>

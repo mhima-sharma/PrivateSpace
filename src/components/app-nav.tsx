@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Megaphone } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { BackButton } from "@/components/back-button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -24,6 +24,13 @@ export function AppNav({ user }: { user: SessionUser }) {
         </div>
 
         <div className="flex items-center gap-1">
+          <Link
+            href="/updates"
+            className="mr-1 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Megaphone className="size-4" />
+            <span className="hidden sm:inline">Updates</span>
+          </Link>
           {user.role === "ADMIN" && (
             <Link
               href="/admin"

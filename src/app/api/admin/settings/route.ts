@@ -1,5 +1,5 @@
 import { handler, assertSameOrigin } from "@/lib/api";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePublisher } from "@/lib/auth-guard";
 import {
   getEventSettings,
   updateEventSettings,
@@ -8,15 +8,16 @@ import {
 import { audit, auditCtxFromRequest } from "@/lib/audit";
 
 // Read current event settings (occasion, note, celebrant, date).
+// Editing is restricted to the designated publisher.
 export const GET = handler(async () => {
-  await requireAdmin();
+  await requirePublisher();
   return Response.json({ settings: await getEventSettings() });
 });
 
-// Update event settings.
+// Update (publish) event settings — publisher only.
 export const PUT = handler(async (req) => {
   assertSameOrigin(req);
-  const admin = await requireAdmin();
+  const admin = await requirePublisher();
   const patch = updateSettingsSchema.parse(await req.json().catch(() => null));
 
   const settings = await updateEventSettings(patch);

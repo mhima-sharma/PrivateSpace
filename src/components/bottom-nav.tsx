@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, PlusSquare, ShieldCheck } from "lucide-react";
+import { Home, PlusSquare, ShieldCheck, Megaphone } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth-guard";
 
@@ -12,6 +12,7 @@ import type { SessionUser } from "@/lib/auth-guard";
  *
  * Every item maps to a REAL destination/action — no decorative tabs:
  *  • Home    → the dashboard feed
+ *  • Updates → the shared event-details page (read-only for all)
  *  • Create  → opens the existing upload modal (?compose=1, read by GalleryView)
  *  • Profile → "My posts" view (?view=mine, read by GalleryView)
  *  • Admin   → admin console (admins only)
@@ -26,6 +27,7 @@ export function BottomNav({ user }: { user: SessionUser }) {
   const isProfile = pathname === profileHref;
   const isHome = onDashboard && view !== "mine";
   const isAdmin = pathname.startsWith("/admin");
+  const isUpdates = pathname.startsWith("/updates");
 
   return (
     <nav
@@ -35,6 +37,10 @@ export function BottomNav({ user }: { user: SessionUser }) {
       <div className="mx-auto flex max-w-md items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)]">
         <Tab href="/dashboard" label="Home" active={isHome}>
           <Home className={cn("size-6", isHome && "fill-foreground/10")} />
+        </Tab>
+
+        <Tab href="/updates" label="Updates" active={isUpdates}>
+          <Megaphone className={cn("size-6", isUpdates && "fill-foreground/10")} />
         </Tab>
 
         <Tab href="/dashboard?compose=1" label="Create" active={false}>

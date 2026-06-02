@@ -18,11 +18,16 @@ export const EDITABLE_KEYS = [
 ] as const;
 export type SettingKey = (typeof EDITABLE_KEYS)[number];
 
+// Stored separately (boolean, not a text field). When "false" the Updates page
+// is hidden from everyone — an unpublish/"delete" that keeps the data intact.
+export const PUBLISHED_KEY = "updatesPublished";
+
 export interface EventSettings {
   celebrant: string;
   occasion: string; // shown as the hero tagline / occasion label
   note: string; // hero message / personal note
   birthdayDate: string; // ISO date driving the countdown
+  published: boolean; // false → hidden from all viewers
 }
 
 export function defaultSettings(): EventSettings {
@@ -31,6 +36,7 @@ export function defaultSettings(): EventSettings {
     occasion: eventConfig.heroTagline,
     note: eventConfig.heroSubtitle,
     birthdayDate: eventConfig.birthdayDate,
+    published: true,
   };
 }
 
@@ -39,10 +45,15 @@ export async function getEventSettings(): Promise<EventSettings> {
   const base = defaultSettings();
   try {
     const rows = await prisma.setting.findMany({
-      where: { key: { in: [...EDITABLE_KEYS] } },
+      where: { key: { in: [...EDITABLE_KEYS, PUBLISHED_KEY] } },
     });
     for (const row of rows) {
-      if ((EDITABLE_KEYS as readonly string[]).includes(row.key) && row.value) {
+      if (row.key === PUBLISHED_KEY) {
+        base.published = row.value !== "false";
+      } else if (
+        (EDITABLE_KEYS as readonly string[]).includes(row.key) &&
+        row.value
+      ) {
         base[row.key as SettingKey] = row.value;
       }
     }
@@ -61,6 +72,7 @@ export const updateSettingsSchema = z.object({
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}/, "Use a YYYY-MM-DD date")
     .optional(),
+  published: z.boolean().optional(), // publish / unpublish (hide) the page
 });
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
 
@@ -68,12 +80,18 @@ export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
 export async function updateEventSettings(
   patch: UpdateSettingsInput,
 ): Promise<EventSettings> {
-  const entries = Object.entries(patch).filter(
-    ([k, v]) => (EDITABLE_KEYS as readonly string[]).includes(k) && v != null,
-  ) as [SettingKey, string][];
+  const ops: { key: string; value: string }[] = [];
+
+  for (const [k, v] of Object.entries(patch)) {
+    if (k === "published" && typeof v === "boolean") {
+      ops.push({ key: PUBLISHED_KEY, value: v ? "true" : "false" });
+    } else if ((EDITABLE_KEYS as readonly string[]).includes(k) && v != null) {
+      ops.push({ key: k, value: String(v) });
+    }
+  }
 
   await prisma.$transaction(
-    entries.map(([key, value]) =>
+    ops.map(({ key, value }) =>
       prisma.setting.upsert({
         where: { key },
         create: { key, value },

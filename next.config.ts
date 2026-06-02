@@ -41,6 +41,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Hide the floating Next.js dev-tools indicator (the "N" badge) shown in dev.
+  devIndicators: false,
   serverExternalPackages: ["@prisma/client", "argon2", "@simplewebauthn/server"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

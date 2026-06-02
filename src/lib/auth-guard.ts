@@ -35,6 +35,18 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * The single account allowed to publish/edit the shared "Updates" (event
+ * details) shown to everyone. This is intentionally a fixed email rather than a
+ * role: only this person can publish; everyone else sees it read-only.
+ */
+export const PUBLISHER_EMAIL = "ourpersonalspace0510@gmail.com";
+
+/** True when the given email is the designated publisher. */
+export function isPublisher(email?: string | null): boolean {
+  return !!email && email.toLowerCase() === PUBLISHER_EMAIL;
+}
+
 /** Throw 401 if not signed in; returns the user otherwise. */
 export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();
@@ -46,5 +58,13 @@ export async function requireUser(): Promise<SessionUser> {
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
   if (user.role !== "ADMIN") throw new HttpError(403, "Admin access required");
+  return user;
+}
+
+/** Throw 401/403 unless signed in as the designated publisher. */
+export async function requirePublisher(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!isPublisher(user.email))
+    throw new HttpError(403, "Only the publisher can do this");
   return user;
 }

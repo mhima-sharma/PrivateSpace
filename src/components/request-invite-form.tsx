@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
  */
 
 // Where invite requests are sent. Change these to update the destinations.
-const REQUEST_EMAIL = "ourpersnolspace0510@gmail.com";
+const REQUEST_EMAIL = "ourpersonalspace0510@gmail.com";
 // WhatsApp number in international format, digits only (e.g. 91 = India).
 const REQUEST_WHATSAPP = "917988543400";
 
