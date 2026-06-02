@@ -16,12 +16,37 @@ export function assertSameOrigin(req: Request) {
   const origin = req.headers.get("origin");
   const referer = req.headers.get("referer");
   const allowed = new Set(
-    [env.NEXTAUTH_URL, env.WEBAUTHN_RP_ORIGIN].filter(Boolean),
+    [env.NEXTAUTH_URL, env.WEBAUTHN_RP_ORIGIN]
+      .filter(Boolean)
+      .map((u) => safeOrigin(u!))
+      .filter(Boolean) as string[],
   );
+
+  // Also trust the host the browser actually connected to. Behind a proxy
+  // (e.g. Vercel) the real scheme/host arrive via x-forwarded-* headers. This
+  // is the canonical same-origin check (Origin must equal the requested host)
+  // and keeps uploads working on any deploy URL without env juggling.
+  const fwdHost = req.headers.get("x-forwarded-host");
+  const host = fwdHost ?? req.headers.get("host");
+  if (host) {
+    const proto =
+      req.headers.get("x-forwarded-proto") ??
+      (origin ? safeScheme(origin) : null) ??
+      "https";
+    allowed.add(`${proto}://${host}`);
+  }
 
   const candidate = origin ?? (referer ? safeOrigin(referer) : null);
   if (!candidate || !allowed.has(candidate)) {
     throw new HttpError(403, "Cross-origin request blocked");
+  }
+}
+
+function safeScheme(url: string): string | null {
+  try {
+    return new URL(url).protocol.replace(/:$/, "");
+  } catch {
+    return null;
   }
 }
 
