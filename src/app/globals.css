@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Theme tokens. Orange is the brand accent (derived from the logo gradient
+ * #FF8A3D → #F25C05). Light + dark palettes are HSL so Tailwind opacity
+ * modifiers work (e.g. bg-primary/10).
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 24 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 10% 10%;
+
+    /* Brand orange */
+    --primary: 22 95% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 24 30% 96%;
+    --secondary-foreground: 24 10% 18%;
+    --muted: 24 16% 95%;
+    --muted-foreground: 24 6% 45%;
+    --accent: 22 95% 96%;
+    --accent-foreground: 22 80% 35%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 12% 90%;
+    --input: 24 12% 88%;
+    --ring: 22 95% 54%;
+
+    --radius: 0.85rem;
+  }
+
+  .dark {
+    --background: 24 14% 7%;
+    --foreground: 24 10% 96%;
+
+    --card: 24 12% 10%;
+    --card-foreground: 24 10% 96%;
+    --popover: 24 12% 10%;
+    --popover-foreground: 24 10% 96%;
+
+    --primary: 22 95% 56%;
+    --primary-foreground: 24 30% 8%;
+
+    --secondary: 24 8% 16%;
+    --secondary-foreground: 24 10% 92%;
+    --muted: 24 8% 15%;
+    --muted-foreground: 24 6% 60%;
+    --accent: 22 60% 18%;
+    --accent-foreground: 22 95% 75%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 8% 20%;
+    --input: 24 8% 22%;
+    --ring: 22 95% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Remove the grey flash on tap for a native, app-like feel on mobile. */
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  /* Slim, unobtrusive scrollbars that match the theme (desktop). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  *::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: hsl(var(--border));
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.4);
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Subtle premium background mesh used on auth + hero screens. */
+.bg-mesh {
+  background-image:
+    radial-gradient(60% 60% at 15% 10%, hsl(22 95% 54% / 0.10), transparent 60%),
+    radial-gradient(50% 50% at 90% 20%, hsl(22 95% 54% / 0.08), transparent 55%),
+    radial-gradient(60% 60% at 50% 100%, hsl(22 95% 54% / 0.06), transparent 60%);
+}
+
+@layer utilities {
+  /* Skeleton placeholder for loading states — lightweight pulse, no new colors. */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-muted;
+  }
+  /* Gentle lift used on interactive cards/tiles. */
+  .card-hover {
+    @apply transition-shadow duration-200 hover:shadow-md;
+  }
+  /* The brand gradient ring used around avatars (matches the feed profile). */
+  .ring-brand {
+    @apply bg-gradient-to-tr from-amber-500 via-primary to-pink-500;
+  }
+}
