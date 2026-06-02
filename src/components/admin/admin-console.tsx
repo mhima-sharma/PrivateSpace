@@ -19,6 +19,7 @@ import {
   X,
   Eye,
   EyeOff,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -260,8 +261,13 @@ function InvitesPanel() {
   const qc = useQueryClient();
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState<"USER" | "ADMIN">("USER");
-  const [lastLink, setLastLink] = React.useState<string | null>(null);
+  const [lastInvite, setLastInvite] = React.useState<{
+    id: string;
+    url: string;
+    email: string;
+  } | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -271,7 +277,7 @@ function InvitesPanel() {
 
   const create = useMutation({
     mutationFn: () =>
-      j<{ url: string }>(
+      j<{ id: string; email: string; url: string }>(
         fetch("/api/admin/invites", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -279,10 +285,27 @@ function InvitesPanel() {
         }),
       ),
     onSuccess: (res) => {
-      setLastLink(res.url);
+      setLastInvite({ id: res.id, url: res.url, email: res.email });
+      setSent(false);
       setEmail("");
       setError(null);
       qc.invalidateQueries({ queryKey: ["admin", "invites"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const sendEmail = useMutation({
+    mutationFn: () =>
+      j(
+        fetch(`/api/admin/invites/${lastInvite!.id}/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: lastInvite!.url }),
+        }),
+      ),
+    onSuccess: () => {
+      setSent(true);
+      setError(null);
     },
     onError: (e: Error) => setError(e.message),
   });
@@ -328,25 +351,44 @@ function InvitesPanel() {
           </div>
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-          {lastLink && (
+          {lastInvite && (
             <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
               <p className="mb-2 text-xs font-medium text-muted-foreground">
-                Share this one-time link with the invitee (shown once):
+                One-time link for{" "}
+                <span className="font-semibold text-foreground">
+                  {lastInvite.email}
+                </span>{" "}
+                (shown once) — copy it, or email it directly:
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 truncate rounded bg-background px-2 py-1.5 text-xs">
-                  {lastLink}
+                  {lastInvite.url}
                 </code>
                 <Button
                   size="sm"
                   variant="outline"
+                  aria-label="Copy link"
                   onClick={async () => {
-                    await navigator.clipboard.writeText(lastLink);
+                    await navigator.clipboard.writeText(lastInvite.url);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 1500);
                   }}
                 >
                   {copied ? <Check /> : <Copy />}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => sendEmail.mutate()}
+                  disabled={sendEmail.isPending || sent}
+                >
+                  {sendEmail.isPending ? (
+                    <Loader2 className="animate-spin" />
+                  ) : sent ? (
+                    <Check />
+                  ) : (
+                    <Mail />
+                  )}
+                  {sent ? "Sent" : "Send email"}
                 </Button>
               </div>
             </div>
@@ -630,7 +672,7 @@ interface AdminUser {
   webauthnEnabled: boolean;
   isActive: boolean;
   createdAt: string;
-  canManageRole: boolean; // true only for the admin who invited this user
+  canManage: boolean; // true only for users this admin invited
   _count: { photos: number; comments: number };
 }
 
@@ -684,30 +726,37 @@ function UsersPanel() {
               <span key="st" className="text-destructive">Disabled</span>
             ),
             <div key="a" className="flex gap-1.5">
-              {u.canManageRole && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    update.mutate({
-                      id: u.id,
-                      patch: { role: u.role === "ADMIN" ? "USER" : "ADMIN" },
-                    })
-                  }
-                >
-                  {u.role === "ADMIN" ? "Make user" : "Make admin"}
-                </Button>
+              {u.canManage ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      update.mutate({
+                        id: u.id,
+                        patch: { role: u.role === "ADMIN" ? "USER" : "ADMIN" },
+                      })
+                    }
+                  >
+                    {u.role === "ADMIN" ? "Make user" : "Make admin"}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Toggle active"
+                    onClick={() =>
+                      update.mutate({
+                        id: u.id,
+                        patch: { isActive: !u.isActive },
+                      })
+                    }
+                  >
+                    {u.isActive ? <UserX /> : <UserCheck />}
+                  </Button>
+                </>
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
               )}
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Toggle active"
-                onClick={() =>
-                  update.mutate({ id: u.id, patch: { isActive: !u.isActive } })
-                }
-              >
-                {u.isActive ? <UserX /> : <UserCheck />}
-              </Button>
             </div>,
           ])}
         />

@@ -2,16 +2,18 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Grid3x3, Loader2 } from "lucide-react";
+import { Grid3x3, Loader2, Settings } from "lucide-react";
 import { fetchProfile } from "@/lib/profile-client";
 import { MemoriesFeed } from "@/components/memories/feed";
 import { EditProfileModal } from "@/components/profile/edit-profile-modal";
+import { SettingsModal } from "@/components/profile/settings-modal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initials } from "@/lib/utils";
 
 export function ProfileView({ id }: { id: string }) {
   const [editing, setEditing] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["profile", id],
@@ -50,14 +52,25 @@ export function ProfileView({ id }: { id: string }) {
                 {profile.username}
               </h1>
               {profile.isSelf && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="rounded-lg"
-                  onClick={() => setEditing(true)}
-                >
-                  Edit profile
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="rounded-lg"
+                    onClick={() => setEditing(true)}
+                  >
+                    Edit profile
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="rounded-lg"
+                    aria-label="Settings"
+                    onClick={() => setSettingsOpen(true)}
+                  >
+                    <Settings className="size-5" />
+                  </Button>
+                </>
               )}
             </div>
 
@@ -120,11 +133,17 @@ export function ProfileView({ id }: { id: string }) {
       </div>
 
       {profile.isSelf && (
-        <EditProfileModal
-          open={editing}
-          onClose={() => setEditing(false)}
-          profile={profile}
-        />
+        <>
+          <EditProfileModal
+            open={editing}
+            onClose={() => setEditing(false)}
+            profile={profile}
+          />
+          <SettingsModal
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+          />
+        </>
       )}
     </div>
   );

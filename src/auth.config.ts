@@ -30,12 +30,15 @@ export const authConfig = {
         "/login",
         "/register",
         "/invite",
+        "/photos", // shared single-post links — the page does its own auth gate
         "/api/auth", // Auth.js endpoints
         "/api/register",
         "/api/webauthn", // passkey ceremonies (guarded internally)
       ];
+      // Exact match or a path SEGMENT under the prefix. Note the trailing
+      // slash: it stops "/invites" from matching the "/invite" prefix.
       const isPublic = publicPrefixes.some(
-        (p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p),
+        (p) => pathname === p || pathname.startsWith(p + "/"),
       );
 
       const isAdminRoute = pathname.startsWith("/admin");

@@ -46,6 +46,17 @@ const serverSchema = z.object({
 
   BOOTSTRAP_ADMIN_EMAIL: z.string().email().optional(),
   INVITE_TTL_HOURS: z.coerce.number().int().positive().default(72),
+
+  // ── Outbound email (invite delivery) — SMTP, e.g. Gmail ───────────────────
+  // All optional: when unset, the "Send email" action is disabled and reports a
+  // clear error instead of crashing. For Gmail use an App Password (requires
+  // 2-Step Verification): host smtp.gmail.com, port 465.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  // Defaults to SMTP_USER when omitted.
+  MAIL_FROM: z.string().optional(),
 });
 
 // Only validate on the server. (Client code must use NEXT_PUBLIC_* directly.)

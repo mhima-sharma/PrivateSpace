@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
@@ -20,8 +20,18 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [passkeyBusy, setPasskeyBusy] = React.useState(false);
+
+  // Where to land after sign-in. Honour a relative callbackUrl (e.g. a shared
+  // /photos/<id> link the visitor was bounced from), but never an absolute or
+  // protocol-relative URL — that would be an open-redirect.
+  function redirectTarget(): string {
+    const cb = params.get("callbackUrl");
+    if (cb && cb.startsWith("/") && !cb.startsWith("//")) return cb;
+    return "/dashboard";
+  }
 
   const {
     register,
@@ -39,7 +49,7 @@ export function LoginForm() {
       setServerError("Invalid email or password.");
       return;
     }
-    router.push("/dashboard");
+    router.push(redirectTarget());
     router.refresh();
   }
 
@@ -61,7 +71,7 @@ export function LoginForm() {
         redirect: false,
       });
       if (res?.error) throw new Error("Passkey was not recognised.");
-      router.push("/dashboard");
+      router.push(redirectTarget());
       router.refresh();
     } catch (err) {
       setServerError(

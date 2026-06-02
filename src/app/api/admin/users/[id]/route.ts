@@ -1,5 +1,5 @@
 import { handler, assertSameOrigin } from "@/lib/api";
-import { requireAdmin, HttpError } from "@/lib/auth-guard";
+import { requireAdmin, isPublisher, HttpError } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { idParamSchema } from "@/lib/validation";
 import { audit, auditCtxFromRequest } from "@/lib/audit";
@@ -25,20 +25,16 @@ export const PATCH = handler(async (req, ctx) => {
   const target = await prisma.user.findUnique({ where: { id } });
   if (!target) throw new HttpError(404, "Not found");
 
-  // Role changes are restricted to the admin who originally invited this user.
-  // (Other admins — and admins for users with no invite on record — cannot.)
-  if (patch.role !== undefined) {
-    const invite = await prisma.invite.findFirst({
-      where: { email: target.email, used: true },
-      orderBy: { usedAt: "desc" },
-      select: { createdById: true },
+  // Scoped management: the super publisher may manage anyone; every other admin
+  // may only manage users THEY invited (a matching invite row exists). When two
+  // admins invited the same email, both qualify.
+  if (!isPublisher(admin.email)) {
+    const invitedByMe = await prisma.invite.findFirst({
+      where: { createdById: admin.id, email: target.email },
+      select: { id: true },
     });
-    const inviterId = invite?.createdById ?? null;
-    if (inviterId !== null && inviterId !== admin.id) {
-      throw new HttpError(
-        403,
-        "Only the admin who invited this user can change their role.",
-      );
+    if (!invitedByMe) {
+      throw new HttpError(403, "You can only manage users you invited.");
     }
   }
 

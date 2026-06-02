@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -68,7 +69,9 @@ export default async function LoginPage() {
                     Enter your credentials to continue.
                   </p>
                 </div>
-                <LoginForm />
+                <Suspense fallback={null}>
+                  <LoginForm />
+                </Suspense>
                 <p className="mt-6 text-center text-xs text-muted-foreground">
                   Have an invitation link?{" "}
                   <Link

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, PlusSquare, ShieldCheck, Megaphone } from "lucide-react";
+import { Home, PlusSquare, ShieldCheck, Megaphone, MailPlus } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
+import { InviteBadge } from "@/components/invites/invite-badge";
 import type { SessionUser } from "@/lib/auth-guard";
 
 /**
@@ -28,6 +29,7 @@ export function BottomNav({ user }: { user: SessionUser }) {
   const isHome = onDashboard && view !== "mine";
   const isAdmin = pathname.startsWith("/admin");
   const isUpdates = pathname.startsWith("/updates");
+  const isInvites = pathname.startsWith("/invites");
 
   return (
     <nav
@@ -45,6 +47,13 @@ export function BottomNav({ user }: { user: SessionUser }) {
 
         <Tab href="/dashboard?compose=1" label="Create" active={false}>
           <PlusSquare className="size-6" />
+        </Tab>
+
+        <Tab href="/invites" label="Invites" active={isInvites}>
+          <span className="relative">
+            <MailPlus className={cn("size-6", isInvites && "fill-foreground/10")} />
+            <InviteBadge className="absolute -right-2 -top-1.5" />
+          </span>
         </Tab>
 
         {user.role === "ADMIN" && (

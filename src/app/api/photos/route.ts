@@ -11,6 +11,7 @@ import {
 import { rateLimit } from "@/lib/rate-limit";
 import { audit, auditCtxFromRequest } from "@/lib/audit";
 import { serializePhoto } from "@/lib/serialize";
+import { visibleAuthorIds } from "@/lib/invites";
 
 const photoInclude = {
   uploader: { select: { id: true, name: true, email: true } },
@@ -43,8 +44,17 @@ export const GET = handler(async (req) => {
         ? { uploadedBy: { not: user.id } }
         : {};
 
+  // Group scope: an admin sees their invited users' posts; a user sees their
+  // admin's posts (plus their own). The super publisher sees everything (null).
+  const allowedAuthors = await visibleAuthorIds(user);
+  const groupScope =
+    allowedAuthors === null ? {} : { uploadedBy: { in: allowedAuthors } };
+
   const photos = await prisma.photo.findMany({
-    where: { ...visibility, ...ownership },
+    where: {
+      ...visibility,
+      AND: [ownership, groupScope].filter((c) => Object.keys(c).length > 0),
+    },
     orderBy: { createdAt: "desc" },
     take: take + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

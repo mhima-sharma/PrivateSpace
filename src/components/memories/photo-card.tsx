@@ -11,6 +11,8 @@ import {
   MoreHorizontal,
   Trash2,
   Loader2,
+  Share2,
+  Check,
 } from "lucide-react";
 import {
   type PhotoDTO,
@@ -32,6 +34,7 @@ export function PhotoCard({ photo }: { photo: PhotoDTO }) {
   const qc = useQueryClient();
   const [showComments, setShowComments] = React.useState(false);
   const [burst, setBurst] = React.useState(false); // double-tap heart animation
+  const [shared, setShared] = React.useState(false); // "link copied" feedback
 
   const like = useMutation({
     mutationFn: () => toggleLike(photo.id),
@@ -47,6 +50,24 @@ export function PhotoCard({ photo }: { photo: PhotoDTO }) {
     setBurst(true);
     setTimeout(() => setBurst(false), 700);
     if (!photo.likedByMe) like.mutate();
+  }
+
+  // Share a link to this post. Anyone opening it must sign in first (the
+  // /photos/<id> page gates on auth and bounces signed-out visitors to /login,
+  // then back here). Uses the native share sheet on mobile, clipboard elsewhere.
+  async function sharePost() {
+    const url = `${window.location.origin}/photos/${photo.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch {
+      // User dismissed the share sheet, or clipboard was blocked — ignore.
+    }
   }
 
   const name = displayName(photo.uploader);
@@ -137,6 +158,20 @@ export function PhotoCard({ photo }: { photo: PhotoDTO }) {
           className="transition-transform active:scale-90"
         >
           <MessageCircle className="size-6 -scale-x-100 text-foreground hover:text-muted-foreground" />
+        </button>
+        <button
+          aria-label="Share post"
+          onClick={sharePost}
+          className="ml-auto flex items-center gap-1 transition-transform active:scale-90"
+        >
+          {shared ? (
+            <>
+              <Check className="size-6 text-green-500" />
+              <span className="text-xs font-medium text-green-500">Copied</span>
+            </>
+          ) : (
+            <Share2 className="size-6 text-foreground hover:text-muted-foreground" />
+          )}
         </button>
       </div>
 

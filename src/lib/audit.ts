@@ -10,6 +10,8 @@ export type AuditAction =
   | "invite.create"
   | "invite.revoke"
   | "invite.accept"
+  | "invite.reject"
+  | "invite.send"
   | "photo.upload"
   | "photo.delete"
   | "photo.like"

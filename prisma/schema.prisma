@@ -53,6 +53,7 @@ model Invite {
   role        Role      @default(USER)
   used        Boolean   @default(false)
   usedAt      DateTime? @map("used_at")
+  rejectedAt  DateTime? @map("rejected_at") // set when an existing user declines an in-app invite
   createdById String?   @map("created_by")
   expiresAt   DateTime  @map("expires_at")
   createdAt   DateTime  @default(now()) @map("created_at")

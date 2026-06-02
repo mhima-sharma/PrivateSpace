@@ -1,12 +1,22 @@
 import { handler } from "@/lib/api";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireAdmin, isPublisher } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 
-// List all users with activity counts. Each row carries `canManageRole`: true
-// only when the requesting admin is the one who invited that user (so only the
-// inviter can promote/demote them).
+/**
+ * Users visible to the requesting admin, scoped per admin:
+ *  - The super publisher sees EVERYONE.
+ *  - Every other admin sees only (a) users they invited, plus (b) the admin who
+ *    invited them, plus their own account.
+ *
+ * `canManage` is true only for users this admin invited (so they can change
+ * role / active) — never for their own inviter or themselves. The super
+ * publisher can manage everyone (except themselves).
+ */
 export const GET = handler(async () => {
   const admin = await requireAdmin();
+  const isSuper = isPublisher(admin.email);
+  const myEmail = admin.email.toLowerCase();
+
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
     select: {
@@ -21,23 +31,38 @@ export const GET = handler(async () => {
     },
   });
 
-  // Map each user's email → the admin who invited them (from the used invite).
+  // All invite links, in both directions we care about.
   const invites = await prisma.invite.findMany({
-    where: { used: true, email: { in: users.map((u) => u.email) } },
-    orderBy: { usedAt: "desc" },
     select: { email: true, createdById: true },
   });
-  const inviterByEmail = new Map<string, string | null>();
-  for (const inv of invites) {
-    if (!inviterByEmail.has(inv.email))
-      inviterByEmail.set(inv.email, inv.createdById ?? null);
-  }
 
-  const withPerms = users.map((u) => {
-    const inviterId = inviterByEmail.get(u.email) ?? null;
-    // No invite on record → legacy/bootstrap user; any admin may manage.
-    const canManageRole = inviterId === null || inviterId === admin.id;
-    return { ...u, canManageRole };
+  // Emails THIS admin has invited (used or not — a pending invite still links).
+  const invitedByMe = new Set(
+    invites
+      .filter((i) => i.createdById === admin.id)
+      .map((i) => i.email.toLowerCase()),
+  );
+  // User ids of the admin(s) who invited THIS admin.
+  const myInviterIds = new Set(
+    invites
+      .filter((i) => i.email.toLowerCase() === myEmail && i.createdById)
+      .map((i) => i.createdById as string),
+  );
+
+  const visible = isSuper
+    ? users
+    : users.filter(
+        (u) =>
+          invitedByMe.has(u.email.toLowerCase()) ||
+          myInviterIds.has(u.id) ||
+          u.id === admin.id,
+      );
+
+  const withPerms = visible.map((u) => {
+    const canManage =
+      u.id !== admin.id &&
+      (isSuper || invitedByMe.has(u.email.toLowerCase()));
+    return { ...u, canManage };
   });
 
   return Response.json({ users: withPerms });

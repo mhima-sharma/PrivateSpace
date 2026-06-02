@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth-guard";
 import { GalleryView } from "@/components/memories/gallery-view";
 import { InstallPrompt } from "@/components/install-prompt";
 import { EventsSection } from "@/components/events/events-section";
+import { InvitesSection } from "@/components/invites/invites-section";
 
 const TRUST_BADGES = [
   { icon: Lock, label: "Private" },
@@ -69,6 +70,7 @@ export default async function DashboardPage() {
       <section className="container py-6 sm:py-8">
         <div className="mx-auto flex max-w-5xl flex-col gap-6">
           <InstallPrompt />
+          <InvitesSection />
           <EventsSection />
           <Suspense fallback={<div className="h-screen" />}>
             <GalleryView email={user?.email ?? ""} />

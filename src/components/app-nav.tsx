@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ShieldCheck, Megaphone } from "lucide-react";
+import { ShieldCheck, Megaphone, MailPlus } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { BackButton } from "@/components/back-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SignOutButton } from "@/components/sign-out-button";
+import { InviteBadge } from "@/components/invites/invite-badge";
 import { initials } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth-guard";
 
@@ -24,12 +25,22 @@ export function AppNav({ user }: { user: SessionUser }) {
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Hidden on mobile/tablet — the bottom tab bar (lg:hidden) already
+              provides these, so we only show them in the top nav on lg+. */}
           <Link
             href="/updates"
-            className="mr-1 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="mr-1 hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:inline-flex"
           >
             <Megaphone className="size-4" />
             <span className="hidden sm:inline">Updates</span>
+          </Link>
+          <Link
+            href="/invites"
+            className="relative mr-1 hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:inline-flex"
+          >
+            <MailPlus className="size-4" />
+            <span className="hidden sm:inline">Invites</span>
+            <InviteBadge className="absolute -right-0.5 -top-0.5" />
           </Link>
           {user.role === "ADMIN" && (
             <Link
@@ -40,8 +51,14 @@ export function AppNav({ user }: { user: SessionUser }) {
               <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
-          <ThemeToggle />
-          <SignOutButton />
+          {/* Theme + sign-out live in Profile → Settings on mobile; only shown
+              in the header on lg+ (where there's no bottom tab bar). */}
+          <span className="hidden lg:inline-flex">
+            <ThemeToggle />
+          </span>
+          <span className="hidden lg:inline-flex">
+            <SignOutButton />
+          </span>
           <Link
             href={`/u/${user.id}`}
             aria-label="Your profile"
