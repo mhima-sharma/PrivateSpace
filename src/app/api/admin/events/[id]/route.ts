@@ -14,6 +14,10 @@ export const DELETE = handler(async (req, ctx) => {
   const event = await prisma.event.findUnique({ where: { id } });
   if (!event) throw new HttpError(404, "Not found");
 
+  // Only the admin who posted the event may delete it — no one else.
+  if (event.createdById !== admin.id)
+    throw new HttpError(403, "Only the admin who posted this can delete it.");
+
   if (event.storageKey) await deleteObject(event.storageKey).catch(() => {});
   await prisma.event.delete({ where: { id } });
 

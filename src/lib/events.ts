@@ -32,6 +32,7 @@ export interface EventDTO {
   createdAt: string;
   expiresAt: string;
   isActive: boolean; // false once expired (only ever true in the active feed)
+  canDelete: boolean; // true only for the admin who posted it
   author: { id: string; name: string | null; email: string };
 }
 
@@ -48,6 +49,7 @@ type EventWithAuthor = {
 export function serializeEvent(
   event: EventWithAuthor,
   now: Date = new Date(),
+  viewerId?: string,
 ): EventDTO {
   return {
     id: event.id,
@@ -57,6 +59,7 @@ export function serializeEvent(
     createdAt: event.createdAt.toISOString(),
     expiresAt: event.expiresAt.toISOString(),
     isActive: event.expiresAt > now,
+    canDelete: viewerId != null && event.author.id === viewerId,
     author: event.author,
   };
 }
@@ -76,12 +79,13 @@ export async function listActiveEvents(): Promise<EventDTO[]> {
   return events.map((e) => serializeEvent(e, now));
 }
 
-/** Every event, newest first — the admin archive. */
-export async function listAllEvents(): Promise<EventDTO[]> {
+/** Every event, newest first — the admin archive. `viewerId` marks which rows
+ *  the requesting admin may delete (only their own). */
+export async function listAllEvents(viewerId?: string): Promise<EventDTO[]> {
   const now = new Date();
   const events = await prisma.event.findMany({
     orderBy: { createdAt: "desc" },
     include: authorSelect,
   });
-  return events.map((e) => serializeEvent(e, now));
+  return events.map((e) => serializeEvent(e, now, viewerId));
 }

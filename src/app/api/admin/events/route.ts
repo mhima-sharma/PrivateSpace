@@ -21,8 +21,8 @@ const authorSelect = {
 
 // ── Archive: every event the admin has ever posted (newest first) ──────────
 export const GET = handler(async () => {
-  await requireAdmin();
-  return Response.json({ events: await listAllEvents() });
+  const admin = await requireAdmin();
+  return Response.json({ events: await listAllEvents(admin.id) });
 });
 
 // ── Create an event (multipart/form-data: title, body, optional file) ──────

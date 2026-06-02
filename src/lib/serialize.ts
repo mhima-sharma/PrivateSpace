@@ -74,6 +74,6 @@ export function serializePhoto(
     likeCount: photo._count.likes,
     commentCount: photo._count.comments,
     likedByMe: photo.likes.some((l) => l.userId === viewer.id),
-    canDelete: viewer.role === "ADMIN" || photo.uploadedBy === viewer.id,
+    canDelete: photo.uploadedBy === viewer.id,
   };
 }

@@ -34,7 +34,7 @@ export const GET = handler(async (req, ctx) => {
       message: c.message,
       createdAt: c.createdAt.toISOString(),
       author: c.user,
-      canDelete: user.role === "ADMIN" || c.userId === user.id,
+      canDelete: c.userId === user.id,
     })),
   });
 });

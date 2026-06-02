@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { idParamSchema } from "@/lib/validation";
 import { audit, auditCtxFromRequest } from "@/lib/audit";
 
-// Delete a comment (author or admin).
+// Delete a comment — AUTHOR ONLY (not even admins can delete others').
 export const DELETE = handler(async (req, ctx) => {
   assertSameOrigin(req);
   const user = await requireUser();
@@ -13,8 +13,8 @@ export const DELETE = handler(async (req, ctx) => {
   const comment = await prisma.comment.findUnique({ where: { id } });
   if (!comment) throw new HttpError(404, "Not found");
 
-  const isOwner = comment.userId === user.id;
-  if (!isOwner && user.role !== "ADMIN") throw new HttpError(403, "Not allowed");
+  if (comment.userId !== user.id)
+    throw new HttpError(403, "Only the author can delete this");
 
   await prisma.comment.delete({ where: { id } });
 

@@ -604,13 +604,15 @@ function EventGroup({
                   )}
                 </p>
               </div>
-              <button
-                onClick={() => onDelete(e.id)}
-                className="mt-0.5 text-muted-foreground hover:text-destructive"
-                aria-label="Delete event"
-              >
-                <Trash2 className="size-4" />
-              </button>
+              {e.canDelete && (
+                <button
+                  onClick={() => onDelete(e.id)}
+                  className="mt-0.5 text-muted-foreground hover:text-destructive"
+                  aria-label="Delete event"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -628,6 +630,7 @@ interface AdminUser {
   webauthnEnabled: boolean;
   isActive: boolean;
   createdAt: string;
+  canManageRole: boolean; // true only for the admin who invited this user
   _count: { photos: number; comments: number };
 }
 
@@ -681,18 +684,20 @@ function UsersPanel() {
               <span key="st" className="text-destructive">Disabled</span>
             ),
             <div key="a" className="flex gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  update.mutate({
-                    id: u.id,
-                    patch: { role: u.role === "ADMIN" ? "USER" : "ADMIN" },
-                  })
-                }
-              >
-                {u.role === "ADMIN" ? "Make user" : "Make admin"}
-              </Button>
+              {u.canManageRole && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    update.mutate({
+                      id: u.id,
+                      patch: { role: u.role === "ADMIN" ? "USER" : "ADMIN" },
+                    })
+                  }
+                >
+                  {u.role === "ADMIN" ? "Make user" : "Make admin"}
+                </Button>
+              )}
               <Button
                 size="icon"
                 variant="ghost"

@@ -5,7 +5,8 @@ import { idParamSchema } from "@/lib/validation";
 import { deleteObject } from "@/lib/storage";
 import { audit, auditCtxFromRequest } from "@/lib/audit";
 
-// Delete a photo. Allowed for the owner OR an admin (admin can delete any).
+// Delete a photo. Allowed for the OWNER ONLY — not even admins can delete
+// someone else's content (admins may still hide it via moderation).
 export const DELETE = handler(async (req, ctx) => {
   assertSameOrigin(req);
   const user = await requireUser();
@@ -14,9 +15,8 @@ export const DELETE = handler(async (req, ctx) => {
   const photo = await prisma.photo.findUnique({ where: { id } });
   if (!photo) throw new HttpError(404, "Not found");
 
-  const isOwner = photo.uploadedBy === user.id;
-  const isAdmin = user.role === "ADMIN";
-  if (!isOwner && !isAdmin) throw new HttpError(403, "Not allowed");
+  if (photo.uploadedBy !== user.id)
+    throw new HttpError(403, "Only the owner can delete this");
 
   // Remove dependent rows first (relationMode=prisma => no cascade in DB).
   await prisma.$transaction([
@@ -29,10 +29,9 @@ export const DELETE = handler(async (req, ctx) => {
 
   await audit({
     userId: user.id,
-    action: isAdmin && !isOwner ? "admin.photo_moderate" : "photo.delete",
+    action: "photo.delete",
     targetType: "photo",
     targetId: id,
-    metadata: { owner: photo.uploadedBy },
     ctx: auditCtxFromRequest(req),
   });
 
