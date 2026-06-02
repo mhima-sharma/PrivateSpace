@@ -4,6 +4,7 @@ import { BackButton } from "@/components/back-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { RequestInviteForm } from "@/components/request-invite-form";
 
 // Landing for users without a full invite link in the URL.
 export default function InviteInfoPage() {
@@ -30,6 +31,10 @@ export default function InviteInfoPage() {
             <Link href="/login" className={buttonVariants({ className: "mt-6 w-full" })}>
               Back to sign in
             </Link>
+
+            <div className="mt-6 border-t border-border/60 pt-4 text-sm text-muted-foreground">
+              Don&apos;t have an invitation? <RequestInviteForm />
+            </div>
           </CardContent>
         </Card>
       </div>

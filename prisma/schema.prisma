@@ -41,6 +41,7 @@ model User {
   credentials Authenticator[]
   invitesSent Invite[]        @relation("InvitesCreatedBy")
   albums      Album[]         @relation("AlbumsCreatedBy")
+  events      Event[]         @relation("EventsCreatedBy")
 
   @@map("users")
 }
@@ -128,6 +129,30 @@ model Comment {
   @@index([photoId])
   @@index([userId])
   @@map("comments")
+}
+
+// Ephemeral "story"-style events created by an admin. Each event is visible on
+// the dashboard for a fixed window (24h) via `expiresAt`; afterwards it drops
+// out of the active feed but is retained forever so admins can browse the
+// archive ("posted this event on <date>"). An optional image is stored exactly
+// like a Photo (private object storage), served through /api/event-images/[id].
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  body        String?  @db.Text
+  storageKey  String?  @map("image_url") // opaque storage key; null = text-only
+  mimeType    String?  @map("mime_type")
+  sizeBytes   Int?     @map("size_bytes")
+  createdById String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  expiresAt   DateTime @map("expires_at")
+
+  author User @relation("EventsCreatedBy", fields: [createdById], references: [id])
+
+  @@index([createdById])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("events")
 }
 
 // WebAuthn / passkey credential (per SimpleWebAuthn).

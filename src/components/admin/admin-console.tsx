@@ -15,14 +15,22 @@ import {
   ShieldCheck,
   UserX,
   UserCheck,
+  ImagePlus,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatDateTime } from "@/lib/utils";
+import {
+  fetchAllEvents,
+  createEvent,
+  deleteEvent,
+  type EventDTO,
+} from "@/lib/events-client";
 
-type Tab = "event" | "invites" | "users" | "activity";
+type Tab = "event" | "events" | "invites" | "users" | "activity";
 
 async function j<T>(req: Response | Promise<Response>): Promise<T> {
   const res = await req;
@@ -33,7 +41,8 @@ async function j<T>(req: Response | Promise<Response>): Promise<T> {
 export function AdminConsole() {
   const [tab, setTab] = React.useState<Tab>("event");
   const tabs: { id: Tab; label: string }[] = [
-    { id: "event", label: "Event" },
+    { id: "event", label: "Event details" },
+    { id: "events", label: "Events" },
     { id: "invites", label: "Invites" },
     { id: "users", label: "Users" },
     { id: "activity", label: "Activity log" },
@@ -59,6 +68,7 @@ export function AdminConsole() {
       </div>
 
       {tab === "event" && <EventPanel />}
+      {tab === "events" && <EventsPanel />}
       {tab === "invites" && <InvitesPanel />}
       {tab === "users" && <UsersPanel />}
       {tab === "activity" && <ActivityPanel />}
@@ -329,6 +339,235 @@ function InvitesPanel() {
   );
 }
 
+// ── Events (story-style, 24h, then archived) ───────────────────────────────
+function EventsPanel() {
+  const qc = useQueryClient();
+  const [title, setTitle] = React.useState("");
+  const [body, setBody] = React.useState("");
+  const [file, setFile] = React.useState<File | null>(null);
+  const [preview, setPreview] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "events"],
+    queryFn: fetchAllEvents,
+  });
+
+  function reset() {
+    setTitle("");
+    setBody("");
+    setError(null);
+    setFile(null);
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(null);
+  }
+
+  const create = useMutation({
+    mutationFn: () => createEvent({ title, body, file }),
+    onSuccess: () => {
+      reset();
+      qc.invalidateQueries({ queryKey: ["admin", "events"] });
+      qc.invalidateQueries({ queryKey: ["events"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteEvent(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "events"] });
+      qc.invalidateQueries({ queryKey: ["events"] });
+    },
+  });
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+    setError(null);
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  }
+
+  const events = data?.events ?? [];
+  const active = events.filter((e) => e.isActive);
+  const archived = events.filter((e) => !e.isActive);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="mb-1 text-base font-semibold">Post an event</h3>
+          <p className="mb-5 text-sm text-muted-foreground">
+            Shows on everyone&apos;s dashboard for 24 hours, then moves to the
+            archive below.
+          </p>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="event-title">Title</Label>
+              <Input
+                id="event-title"
+                value={title}
+                maxLength={120}
+                placeholder="e.g. Cake cutting at 8pm 🎂"
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="event-body">Note (optional)</Label>
+              <textarea
+                id="event-body"
+                value={body}
+                maxLength={600}
+                rows={3}
+                placeholder="A few words about this moment…"
+                onChange={(e) => setBody(e.target.value)}
+                className="flex w-full rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground hover:border-ring/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+
+            {preview ? (
+              <div className="relative w-fit overflow-hidden rounded-xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="max-h-48 object-cover"
+                />
+                <button
+                  onClick={() => {
+                    setFile(null);
+                    if (preview) URL.revokeObjectURL(preview);
+                    setPreview(null);
+                  }}
+                  className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-background/80 backdrop-blur"
+                  aria-label="Remove image"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground">
+                <ImagePlus className="size-4 text-primary" />
+                Add an image (optional)
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={onPick}
+                />
+              </label>
+            )}
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <div>
+              <Button
+                onClick={() => create.mutate()}
+                disabled={create.isPending || !title.trim()}
+              >
+                {create.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
+                Post event
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <Spinner />
+          ) : (
+            <div className="flex flex-col">
+              <EventGroup
+                heading={`Active${active.length ? ` (${active.length})` : ""}`}
+                events={active}
+                onDelete={(id) => remove.mutate(id)}
+                emptyText="No active events right now."
+              />
+              <EventGroup
+                heading={`Archive${archived.length ? ` (${archived.length})` : ""}`}
+                events={archived}
+                onDelete={(id) => remove.mutate(id)}
+                emptyText="Nothing archived yet."
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function EventGroup({
+  heading,
+  events,
+  onDelete,
+  emptyText,
+}: {
+  heading: string;
+  events: EventDTO[];
+  onDelete: (id: string) => void;
+  emptyText: string;
+}) {
+  return (
+    <div className="border-b border-border last:border-0">
+      <p className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {heading}
+      </p>
+      {events.length === 0 ? (
+        <p className="px-5 pb-4 text-sm text-muted-foreground">{emptyText}</p>
+      ) : (
+        <ul className="flex flex-col">
+          {events.map((e) => (
+            <li
+              key={e.id}
+              className="flex items-start gap-3 border-t border-border/60 px-5 py-4"
+            >
+              {e.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={e.imageUrl}
+                  alt=""
+                  className="size-12 shrink-0 rounded-lg object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium leading-snug">{e.title}</p>
+                {e.body && (
+                  <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">
+                    {e.body}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Posted {formatDateTime(e.createdAt)}
+                  {e.isActive ? (
+                    <span className="ml-2 text-primary">· Active</span>
+                  ) : (
+                    <span className="ml-2">· Expired</span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => onDelete(e.id)}
+                className="mt-0.5 text-muted-foreground hover:text-destructive"
+                aria-label="Delete event"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ── Users ────────────────────────────────────────────────────────────────
 interface AdminUser {
   id: string;
@@ -476,9 +715,18 @@ function Table({
   head: React.ReactNode[];
   rows: React.ReactNode[][];
 }) {
+  if (rows.length === 0) {
+    return (
+      <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+        Nothing here yet.
+      </p>
+    );
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+    <>
+      {/* Desktop: regular table. */}
+      <table className="hidden w-full text-left text-sm md:table">
         <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
           <tr>
             {head.map((h, i) => (
@@ -489,28 +737,45 @@ function Table({
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td
-                colSpan={head.length}
-                className="px-5 py-10 text-center text-muted-foreground"
-              >
-                Nothing here yet.
-              </td>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-b border-border/60 last:border-0">
+              {r.map((cell, j) => (
+                <td key={j} className="px-5 py-3 align-middle">
+                  {cell}
+                </td>
+              ))}
             </tr>
-          ) : (
-            rows.map((r, i) => (
-              <tr key={i} className="border-b border-border/60 last:border-0">
-                {r.map((cell, j) => (
-                  <td key={j} className="px-5 py-3 align-middle">
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
       </table>
-    </div>
+
+      {/* Mobile: each row as a stacked card (label: value), no horizontal scroll. */}
+      <div className="flex flex-col divide-y divide-border/60 md:hidden">
+        {rows.map((r, i) => (
+          <div key={i} className="flex flex-col gap-2 px-5 py-4">
+            {r.map((cell, j) => {
+              const label = head[j];
+              const hasLabel =
+                typeof label === "string" ? label.trim() !== "" : !!label;
+              return (
+                <div
+                  key={j}
+                  className="flex items-start justify-between gap-3 text-sm"
+                >
+                  {hasLabel && (
+                    <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
+                      {label}
+                    </span>
+                  )}
+                  <span className={cn("text-right", !hasLabel && "ml-auto")}>
+                    {cell}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

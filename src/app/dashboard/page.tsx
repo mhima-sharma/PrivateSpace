@@ -3,6 +3,7 @@ import { Images } from "lucide-react";
 import { getSessionUser } from "@/lib/auth-guard";
 import { GalleryView } from "@/components/memories/gallery-view";
 import { InstallPrompt } from "@/components/install-prompt";
+import { EventsSection } from "@/components/events/events-section";
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
       <section className="container py-12">
         <div className="mx-auto flex max-w-5xl flex-col gap-8">
           <InstallPrompt />
+          <EventsSection />
           <Suspense fallback={<div className="h-screen" />}>
             <GalleryView email={user?.email ?? ""} />
           </Suspense>

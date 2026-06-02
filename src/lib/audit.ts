@@ -20,6 +20,8 @@ export type AuditAction =
   | "admin.user_update"
   | "admin.settings_update"
   | "admin.photo_moderate"
+  | "event.create"
+  | "event.delete"
   | "image.access_denied";
 
 export interface AuditContext {

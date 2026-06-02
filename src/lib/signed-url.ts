@@ -18,6 +18,22 @@ export function signImagePath(photoId: string, ttlSec = env.IMAGE_URL_TTL_SECOND
   return `/api/images/${photoId}?${params.toString()}`;
 }
 
+/**
+ * Same signing scheme as {@link signImagePath}, but routed through the event
+ * image gate (/api/event-images/[id]). Verification uses the shared
+ * {@link verifyImageSignature} — the HMAC is over `<id>:<exp>` regardless of
+ * which route serves the bytes.
+ */
+export function signEventImagePath(
+  eventId: string,
+  ttlSec = env.IMAGE_URL_TTL_SECONDS,
+) {
+  const exp = Math.floor(Date.now() / 1000) + ttlSec;
+  const sig = sign(`${eventId}:${exp}`);
+  const params = new URLSearchParams({ exp: String(exp), sig });
+  return `/api/event-images/${eventId}?${params.toString()}`;
+}
+
 export function verifyImageSignature(
   photoId: string,
   exp: string | null,
