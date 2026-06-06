@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String?
+  image        String?
+  role         Role      @default(ADMIN)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  blogs        Blog[]
+  comments     Comment[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  image       String?
+  isActive    Boolean  @default(true) @map("is_active")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  blogs       Blog[]
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model Blog {
+  id              String             @id @default(cuid())
+  title           String
+  slug            String             @unique
+  excerpt         String?            @db.Text
+  content         String             @db.LongText
+  featuredImage   String?            @map("featured_image")
+  tags            Json?
+  status          BlogStatus         @default(DRAFT)
+  isFeatured      Boolean            @default(false) @map("is_featured")
+  isTrending      Boolean            @default(false) @map("is_trending")
+  readingTime     Int                @default(1) @map("reading_time")
+  views           Int                @default(0)
+  publishedAt     DateTime?          @map("published_at")
+  scheduledFor    DateTime?          @map("scheduled_for")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  metaTitle       String?            @map("meta_title")
+  metaDescription String?            @map("meta_description") @db.Text
+  categoryId      String             @map("category_id")
+  authorId        String             @map("author_id")
+  destinationId   String?            @map("destination_id")
+  category        Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author          User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  products        Product[]
+  comments        Comment[]
+  affiliateClicks AffiliateClick[]
+  destination     TravelDestination? @relation(fields: [destinationId], references: [id])
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([destinationId])
+  @@index([status, publishedAt])
+  @@index([title])
+  @@map("blogs")
+}
+
+model Product {
+  id              String           @id @default(cuid())
+  name            String
+  description     String?          @db.Text
+  image           String?
+  price           Decimal?         @db.Decimal(10, 2)
+  currency        String           @default("INR")
+  affiliateUrl    String           @map("affiliate_url") @db.Text
+  platform        Platform         @default(AMAZON)
+  clicks          Int              @default(0)
+  isFeatured      Boolean          @default(false) @map("is_featured")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  blogId          String?          @map("blog_id")
+  blog            Blog?            @relation(fields: [blogId], references: [id], onDelete: SetNull)
+  affiliateClicks AffiliateClick[]
+
+  @@index([blogId])
+  @@index([platform])
+  @@index([name])
+  @@map("products")
+}
+
+model TravelDestination {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  location        String?
+  description     String?  @db.Text
+  bestTimeToVisit String?  @map("best_time_to_visit")
+  budget          String?
+  travelTips      String?  @map("travel_tips") @db.Text
+  gallery         Json?
+  mapUrl          String?  @map("map_url") @db.Text
+  coverImage      String?  @map("cover_image")
+  isFeatured      Boolean  @default(false) @map("is_featured")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  blogs           Blog[]
+
+  @@index([slug])
+  @@index([name])
+  @@map("travel_destinations")
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  authorName  String   @map("author_name")
+  authorEmail String?  @map("author_email")
+  content     String   @db.Text
+  isApproved  Boolean  @default(false) @map("is_approved")
+  createdAt   DateTime @default(now()) @map("created_at")
+  blogId      String   @map("blog_id")
+  userId      String?  @map("user_id")
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([blogId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  isActive     Boolean  @default(true) @map("is_active")
+  subscribedAt DateTime @default(now()) @map("subscribed_at")
+
+  @@map("newsletter_subscribers")
+}
+
+model AffiliateClick {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  referrer  String?  @db.Text
+  userAgent String?  @map("user_agent") @db.Text
+  productId String   @map("product_id")
+  blogId    String?  @map("blog_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  blog      Blog?    @relation(fields: [blogId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([blogId])
+  @@index([createdAt])
+  @@map("affiliate_clicks")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
+
+enum Platform {
+  MYNTRA
+  AMAZON
+  FLIPKART
+  AJIO
+  MEESHO
+  CUSTOM
+}

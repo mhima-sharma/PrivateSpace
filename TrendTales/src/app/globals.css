@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 327 73% 57%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 5.5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263 70% 65%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 327 73% 60%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 263 70% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Brand gradient utilities */
+@layer utilities {
+  .gradient-brand {
+    @apply bg-gradient-to-r from-primary to-accent;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+}
+
+/* Tiptap editor + rendered blog content */
+.tiptap-content :where(h1) {
+  @apply text-3xl font-bold mt-8 mb-4;
+}
+.tiptap-content :where(h2) {
+  @apply text-2xl font-bold mt-6 mb-3;
+}
+.tiptap-content :where(h3) {
+  @apply text-xl font-semibold mt-5 mb-2;
+}
+.tiptap-content :where(p) {
+  @apply leading-7 my-4;
+}
+.tiptap-content :where(ul) {
+  @apply list-disc pl-6 my-4 space-y-1;
+}
+.tiptap-content :where(ol) {
+  @apply list-decimal pl-6 my-4 space-y-1;
+}
+.tiptap-content :where(a) {
+  @apply text-primary underline underline-offset-2;
+}
+.tiptap-content :where(blockquote) {
+  @apply border-l-4 border-primary/40 pl-4 italic my-4 text-muted-foreground;
+}
+.tiptap-content :where(pre) {
+  @apply bg-zinc-900 text-zinc-100 rounded-lg p-4 overflow-x-auto my-4 text-sm;
+}
+.tiptap-content :where(code) {
+  @apply rounded bg-muted px-1.5 py-0.5 text-sm;
+}
+.tiptap-content :where(pre code) {
+  @apply bg-transparent p-0;
+}
+.tiptap-content :where(img) {
+  @apply rounded-lg my-4 max-w-full h-auto;
+}
+.tiptap-content :where(table) {
+  @apply w-full border-collapse my-4;
+}
+.tiptap-content :where(th, td) {
+  @apply border border-border p-2 text-left;
+}
+
+/* ProseMirror editor placeholder */
+.ProseMirror:focus {
+  outline: none;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
