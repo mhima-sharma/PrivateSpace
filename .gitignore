@@ -37,3 +37,6 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# moved to its own standalone project at ~/Desktop/TrendTales
+TrendTales/
